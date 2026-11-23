@@ -15,6 +15,8 @@ python network_toolkit.py inspect 192.168.10.45/24
 python network_toolkit.py inspect 2001:db8::1/64
 python network_toolkit.py vlsm 192.168.10.0/24 60 30 10
 python -m unittest -v
+printf 'hosts\n60\n30\n10\n' > hosts.csv
+python network_toolkit.py vlsm 192.168.10.0/24 --input-csv hosts.csv --output-csv allocations.csv
 ```
 
 The VLSM example allocates `192.168.10.0/26`, `192.168.10.64/27` and `192.168.10.96/28`, supporting 62, 30 and 14 conventional LAN hosts respectively. Results use JSON so they can be inspected or reused in other scripts. Allocations retain each request's original index and are generated largest first.
@@ -38,7 +40,7 @@ The inspector treats IPv4 `/31` as a two-address point-to-point network and `/32
 
 ## Next improvements
 
-- CSV input and allocation export.
+- Add a graphical interface for reviewing CSV allocation reports.
 - A small web interface for visual subnet planning.
 - Separate Packet Tracer/GNS3 labs with authentic configuration files and screenshots.
 
