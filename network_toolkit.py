@@ -1,5 +1,6 @@
 """Educational IP addressing and VLSM tools; no network configuration changes."""
 import argparse
+import csv
 import ipaddress
 import json
 
@@ -50,6 +51,34 @@ def plan_vlsm(cidr, host_requests):
     return allocations
 
 
+
+def read_host_requests(path):
+    """Read positive host counts from a CSV with a 'hosts' header."""
+    with open(path, newline="", encoding="utf-8-sig") as stream:
+        reader = csv.DictReader(stream)
+        if not reader.fieldnames or "hosts" not in reader.fieldnames:
+            raise ValueError("Input CSV requires a hosts column.")
+        values = []
+        for line, row in enumerate(reader, 2):
+            raw = (row.get("hosts") or "").strip()
+            if not raw.isdecimal() or int(raw) < 1:
+                raise ValueError(f"CSV line {line}: hosts must be positive integers.")
+            values.append(int(raw))
+    if not values:
+        raise ValueError("Input CSV contains no host requests.")
+    return values
+
+
+def export_allocations(path, allocations):
+    """Create a CSV export without overwriting an existing file."""
+    fields = ("request_index", "requested_hosts", "network", "prefix_length",
+              "netmask", "broadcast", "usable_hosts", "first_host", "last_host")
+    with open(path, "x", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fieldnames=fields, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(allocations)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -57,11 +86,21 @@ def main():
     inspect.add_argument("cidr")
     vlsm = commands.add_parser("vlsm", help="Allocate conventional IPv4 LAN subnets")
     vlsm.add_argument("cidr")
-    vlsm.add_argument("hosts", nargs="+", type=int)
+    vlsm.add_argument("hosts", nargs="*", type=int)
+    vlsm.add_argument("--input-csv", help="CSV with a hosts column")
+    vlsm.add_argument("--output-csv", help="Create CSV allocation report")
     args = parser.parse_args()
     try:
-        result = describe_network(args.cidr) if args.command == "inspect" else plan_vlsm(args.cidr, args.hosts)
-    except ValueError as exc:
+        if args.command == "inspect":
+            result = describe_network(args.cidr)
+        else:
+            if args.input_csv and args.hosts:
+                raise ValueError("Use positional hosts or --input-csv, not both.")
+            hosts = read_host_requests(args.input_csv) if args.input_csv else args.hosts
+            result = plan_vlsm(args.cidr, hosts)
+            if args.output_csv:
+                export_allocations(args.output_csv, result)
+    except (ValueError, OSError) as exc:
         parser.error(str(exc))
     print(json.dumps(result, indent=2))
 
