@@ -1,5 +1,9 @@
 # Networking Lab Toolkit
 
+Python CLI for IP addressing, subnet analysis, and IPv4 VLSM planning with machine-readable JSON output.
+
+## Project overview
+
 A small Python command-line toolkit for IP addressing, subnet inspection and IPv4 VLSM planning.
 
 ## Project provenance
